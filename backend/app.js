@@ -1,11 +1,25 @@
 const express = require('express');
-const cors = require("cors")
+const cors = require("cors");
+const session = require("express-session");
+const passport = require("passport");
+require("./config/passport");
 
-const app= express();
+const authRoutes = require("./routes/authRoutes");
+
+const app = express();
 
 app.use(cors());
-
 app.use(express.json());
 
+app.use(session({
+  secret: process.env.JWT_SECRET,
+  resave: false,
+  saveUninitialized: false
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+app.use("/auth", authRoutes);
 
 module.exports = app;

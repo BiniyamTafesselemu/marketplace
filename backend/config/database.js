@@ -11,7 +11,13 @@ const sequelize = new Sequelize(process.env.DB_URL, {
         }
     },
     host: "db.awikwkvjdagvziraqbky.supabase.co",
-    family: 4  // 👈 forces IPv4
+    family: 4,
+    pool: {
+        max: 10,
+        min: 2,
+        acquire: 60000,
+        idle: 20000
+}
 });
 
 const connectDB = async () => {

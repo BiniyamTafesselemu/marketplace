@@ -81,5 +81,6 @@ module.exports = {
     getAllCategories,
     createCategory,
     updateCategory,
-    deleteCategory
+    deleteCategory,
+    getCategoryById
 }

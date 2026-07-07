@@ -3,6 +3,7 @@ const cors = require("cors");
 const session = require("express-session");
 const passport = require("passport");
 const category = require("./routes/categoryRoutes")
+const provider = require("./routes/providerRoutes")
 require("./config/passport");
 
 const authRoutes = require("./routes/authRoutes");
@@ -23,5 +24,6 @@ app.use(passport.session());
 
 app.use("/auth", authRoutes);
 app.use("/categories", category);
+app.use("/providers", provider);
 
 module.exports = app;

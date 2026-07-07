@@ -18,9 +18,32 @@ const ProviderProfile = sequelize.define("ProviderProfile", {
     description: {
         type: DataTypes.TEXT,
     },
+    city: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    sub_city: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    woreda: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
     location: {
         type: DataTypes.STRING,
+        allowNull: false,
     },
+    national_id_photo:{
+        type: DataTypes.TEXT,
+        allowNull: true,
+
+    },
+    FAN_number: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    
     price: {
         type: DataTypes.STRING,
     },
@@ -30,6 +53,10 @@ const ProviderProfile = sequelize.define("ProviderProfile", {
     image: {
         type: DataTypes.STRING,
     },
+    business_name: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    }
 }, { timestamps: true });
 
 module.exports = ProviderProfile;

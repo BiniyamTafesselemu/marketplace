@@ -8,7 +8,6 @@ async function getAllReviews(req, res) {
         res.status(500).json({ message: "Error fetching reviews" });
     }
 }
-
 async function getReviewById(req, res) {
     try {
         const { id } = req.params;

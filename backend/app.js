@@ -5,6 +5,7 @@ const passport = require("passport");
 const category = require("./routes/categoryRoutes")
 const provider = require("./routes/providerRoutes")
 const booking = require("./routes/bookingRoutes")
+const review = require("./routes/reviewRoutes")
 require("./config/passport");
 
 const authRoutes = require("./routes/authRoutes");
@@ -27,5 +28,6 @@ app.use("/auth", authRoutes);
 app.use("/categories", category);
 app.use("/providers", provider);
 app.use("/bookings", booking);
+app.use("/reviews", review);
 
 module.exports = app;

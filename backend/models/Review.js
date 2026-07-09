@@ -7,6 +7,10 @@ const Review = sequelize.define("Review", {
         primaryKey: true,
         autoIncrement: true,
     },
+    customer_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    },
     booking_id: {
         type: DataTypes.INTEGER,
         allowNull: false,

@@ -1,75 +1,114 @@
-# React + TypeScript + Vite
+# Service Marketplace
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A full-stack service marketplace platform built for the Ethiopian market, connecting customers with local service providers.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+**Backend**
+- Node.js + Express
+- Sequelize ORM + PostgreSQL (Supabase)
+- Passport.js (Google OAuth 2.0)
+- JWT Authentication
+- Chapa Payment Gateway (Ethiopia)
 
-## React Compiler
+**Frontend**
+- React + TypeScript
+- Vite
+- Tailwind CSS
+- React Router
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Features
 
-## Expanding the ESLint configuration
+- Google OAuth 2.0 authentication
+- JWT-based protected routes
+- Browse and search service providers
+- Ethiopian location fields (city, sub-city, woreda)
+- Provider profile creation and management
+- Booking system
+- Reviews and ratings
+- Payment integration (Chapa)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Project Structure
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+service-marketplace/
+├── backend/
+│   ├── config/          # Database and Passport configuration
+│   ├── controllers/     # Route controllers
+│   ├── middleware/      # Auth middleware
+│   ├── models/          # Sequelize models
+│   ├── routes/          # Express routes
+│   ├── app.js
+│   └── server.js
+└── frontend/
+├── src/
+│   ├── components/  # Reusable components
+│   ├── context/     # React context
+│   ├── pages/       # Page components
+│   └── services/    # API services
+└── index.html
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Getting Started
 
+### Prerequisites
+- Node.js v18+
+- PostgreSQL (or Supabase account)
+- Google Cloud Console project
+- Chapa account (for payments)
+
+### Backend Setup
+
+```bash
+cd backend
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Create a `.env` file in the `backend/` folder:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```env
+PORT=3000
+DB_URL=your_supabase_connection_string
+JWT_SECRET=your_jwt_secret
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_CALLBACK_URL=http://localhost:3000/auth/google/callback
+CLIENT_URL=http://localhost:5173
+SERVER_URL=http://localhost:3000
+CHAPA_SECRET_KEY=your_chapa_secret_key
+CHAPA_PUBLIC_KEY=your_chapa_public_key
 ```
+
+Start the server:
+
+```bash
+node --watch server.js
+```
+
+### Frontend Setup
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## API Endpoints
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | /auth/google | Google OAuth login | No |
+| GET | /auth/google/callback | OAuth callback | No |
+| GET | /categories | Get all categories | No |
+| POST | /categories | Create category | Yes |
+| GET | /providers | Get all providers | No |
+| POST | /providers/profile | Create provider profile | Yes |
+| GET | /bookings | Get user bookings | Yes |
+| POST | /bookings | Create booking | Yes |
+| GET | /reviews | Get all reviews | No |
+| POST | /reviews | Create review | Yes |
+| POST | /payments | Initialize payment | Yes |
+| GET | /payments/verify/:tx_ref | Verify payment | No |
+
+## License
+
+MIT

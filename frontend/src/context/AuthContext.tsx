@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
 
-
 interface User {
   id: number;
   role: string;
@@ -21,9 +20,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
   const [user, setUser] = useState<User | null>(null);
 
-  const parseToken = (token: string): User | null => {
+  const parseToken = (t: string): User | null => {
     try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
+      const payload = JSON.parse(atob(t.split(".")[1]));
       return { id: payload.id, role: payload.role };
     } catch {
       return null;
@@ -42,17 +41,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
-  // Read token from URL after Google OAuth redirect
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const urlToken = params.get("token");
-    if (urlToken) {
-      login(urlToken);
-      window.history.replaceState({}, "", "/dashboard");
-    }
-  }, []);
-
-  // Load user from stored token on app start
   useEffect(() => {
     if (token) {
       setUser(parseToken(token));

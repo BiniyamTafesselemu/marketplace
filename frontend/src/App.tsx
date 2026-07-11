@@ -5,6 +5,11 @@ import LandingPage from './pages/LandingPage'
 import Login from './pages/Login'
 import Signup from './pages/SignUp'
 import Dashboard from './pages/Dashboard'
+import Bookings from './pages/dashboard/Bookings'
+import Reviews from './pages/dashboard/Reviews'
+import Payments from './pages/dashboard/Payments'
+import Profile from './pages/dashboard/Profile'
+import Settings from './pages/dashboard/Settings'
 import ProtectedRoute from './components/ProtectedRoute'
 import './App.css'
 
@@ -28,14 +33,12 @@ function App() {
       <Route path="/signup" element={<Signup />} />
       <Route path="/providers" element={<div>Providers Page</div>} />
       <Route path="/providers/:id" element={<div>Provider Detail Page</div>} />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/dashboard/bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
+      <Route path="/dashboard/reviews" element={<ProtectedRoute><Reviews /></ProtectedRoute>} />
+      <Route path="/dashboard/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
+      <Route path="/dashboard/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/dashboard/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
     </Routes>
   )
 }

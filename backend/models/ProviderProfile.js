@@ -70,6 +70,14 @@ const ProviderProfile = sequelize.define("ProviderProfile", {
     rejection_reason: {
         type: DataTypes.TEXT,
         allowNull: true,
+    },
+    account_status: {
+        type: DataTypes.ENUM("active", "suspended", "banned"),
+        defaultValue: "active",
+    },
+    suspension_reason: {
+        type: DataTypes.TEXT,
+        allowNull: true,
     }
 }, { timestamps: true });
 

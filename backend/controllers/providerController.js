@@ -36,8 +36,6 @@ async function updateProviderProfile(req, res) {
         providerProfile.FAN_number = FAN_number || providerProfile.FAN_number;
         providerProfile.trade_license = trade_license || providerProfile.trade_license;
         providerProfile.skill_certificate = skill_certificate || providerProfile.skill_certificate;
-
-        // Reset to pending review when documents are updated
         providerProfile.verification_status = "pending";
 
         await providerProfile.save();
@@ -50,11 +48,9 @@ async function updateProviderProfile(req, res) {
 async function deleteProviderProfile(req, res) {
     try {
         const providerProfile = await provider.findOne({ where: { user_id: req.user.id } });
-
         if (!providerProfile) {
             return res.status(404).json({ message: "Provider profile not found" });
         }
-
         await providerProfile.destroy();
         res.json({ message: "Provider profile deleted successfully" });
     } catch (error) {
@@ -64,9 +60,12 @@ async function deleteProviderProfile(req, res) {
 
 async function getAllProviderProfiles(req, res) {
     try {
-        // Public — only show approved providers
+        const { Op } = require("sequelize");
         const providerProfiles = await provider.findAll({
-            where: { verification_status: "approved" }
+            where: {
+                verification_status: "approved",
+                account_status: "active"
+            }
         });
         res.json(providerProfiles);
     } catch (error) {
@@ -86,7 +85,8 @@ async function createProviderProfile(req, res) {
             phone, user_id: req.user.id, category_id, business_name,
             description, price, image, city, sub_city, woreda, location,
             national_id_photo, FAN_number, trade_license, skill_certificate,
-            verification_status: "pending"
+            verification_status: "pending",
+            account_status: "active"
         });
 
         res.status(201).json(newProviderProfile);
@@ -95,7 +95,6 @@ async function createProviderProfile(req, res) {
     }
 }
 
-// Admin only
 async function getAllProviderProfilesAdmin(req, res) {
     try {
         const providerProfiles = await provider.findAll();
@@ -111,7 +110,6 @@ async function updateVerificationStatus(req, res) {
         const { verification_status, rejection_reason } = req.body;
 
         const providerProfile = await provider.findByPk(id);
-
         if (!providerProfile) {
             return res.status(404).json({ message: "Provider profile not found" });
         }
@@ -128,6 +126,30 @@ async function updateVerificationStatus(req, res) {
     }
 }
 
+async function updateAccountStatus(req, res) {
+    try {
+        const { id } = req.params;
+        const { account_status, suspension_reason } = req.body;
+
+        const providerProfile = await provider.findByPk(id);
+        if (!providerProfile) {
+            return res.status(404).json({ message: "Provider profile not found" });
+        }
+
+        providerProfile.account_status = account_status;
+        if (suspension_reason) {
+            providerProfile.suspension_reason = suspension_reason;
+        } else {
+            providerProfile.suspension_reason = null;
+        }
+
+        await providerProfile.save();
+        res.json(providerProfile);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+
 module.exports = {
     getProviderProfile,
     updateProviderProfile,
@@ -135,5 +157,6 @@ module.exports = {
     getAllProviderProfiles,
     createProviderProfile,
     getAllProviderProfilesAdmin,
-    updateVerificationStatus
+    updateVerificationStatus,
+    updateAccountStatus
 }

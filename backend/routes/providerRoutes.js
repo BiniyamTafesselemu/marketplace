@@ -5,12 +5,12 @@ const {
     updateProviderProfile,
     deleteProviderProfile,
     getAllProviderProfilesAdmin,
-    updateVerificationStatus
+    updateVerificationStatus,
+    updateAccountStatus
 } = require('../controllers/providerController');
-const { adminMiddleware } = require('../middleware/adminMiddleware');
-
 const express = require('express');
 const { protect } = require('../middleware/authMiddleware');
+const { adminMiddleware } = require('../middleware/adminMiddleware');
 
 const router = express.Router();
 
@@ -24,7 +24,8 @@ router.put('/profile', protect, updateProviderProfile);
 router.delete('/profile', protect, deleteProviderProfile);
 
 // Admin
-router.get('/admin/all', protect, adminMiddleware,  getAllProviderProfilesAdmin);
+router.get('/admin/all', protect, adminMiddleware, getAllProviderProfilesAdmin);
 router.put('/admin/:id/verify', protect, adminMiddleware, updateVerificationStatus);
+router.put('/admin/:id/account-status', protect, adminMiddleware, updateAccountStatus);
 
 module.exports = router;

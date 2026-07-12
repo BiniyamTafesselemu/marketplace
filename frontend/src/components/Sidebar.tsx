@@ -1,6 +1,8 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useState } from "react";
+// const { user } = useAuth();
+
 
 const navItems = [
   { icon: "🏠", label: "Overview", path: "/dashboard" },

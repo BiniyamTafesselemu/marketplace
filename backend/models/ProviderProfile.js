@@ -34,16 +34,14 @@ const ProviderProfile = sequelize.define("ProviderProfile", {
         type: DataTypes.STRING,
         allowNull: false,
     },
-    national_id_photo:{
+    national_id_photo: {
         type: DataTypes.TEXT,
         allowNull: true,
-
     },
     FAN_number: {
         type: DataTypes.STRING,
         allowNull: false,
     },
-    
     price: {
         type: DataTypes.STRING,
     },
@@ -56,6 +54,22 @@ const ProviderProfile = sequelize.define("ProviderProfile", {
     business_name: {
         type: DataTypes.STRING,
         allowNull: false,
+    },
+    trade_license: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+    },
+    skill_certificate: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+    },
+    verification_status: {
+        type: DataTypes.ENUM("pending", "under_review", "approved", "rejected"),
+        defaultValue: "pending",
+    },
+    rejection_reason: {
+        type: DataTypes.TEXT,
+        allowNull: true,
     }
 }, { timestamps: true });
 

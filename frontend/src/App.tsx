@@ -12,6 +12,8 @@ import Profile from './pages/dashboard/Profile'
 import Settings from './pages/dashboard/Settings'
 import ProtectedRoute from './components/ProtectedRoute'
 import './App.css'
+import Providers from './pages/Providers'
+import AdminDashboard from './pages/admin/AdminDashboard'
 
 function App() {
   const { login } = useAuth();
@@ -31,7 +33,7 @@ function App() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
-      <Route path="/providers" element={<div>Providers Page</div>} />
+      <Route path="/providers" element={<Providers />} />
       <Route path="/providers/:id" element={<div>Provider Detail Page</div>} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/dashboard/bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
@@ -39,6 +41,8 @@ function App() {
       <Route path="/dashboard/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
       <Route path="/dashboard/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/dashboard/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+
     </Routes>
   )
 }

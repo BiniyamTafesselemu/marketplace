@@ -44,12 +44,14 @@ const ProviderProfile = sequelize.define("ProviderProfile", {
     },
     price: {
         type: DataTypes.STRING,
+        
     },
     phone: {
         type: DataTypes.STRING,
     },
     image: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
+        allowNull: true,
     },
     business_name: {
         type: DataTypes.STRING,

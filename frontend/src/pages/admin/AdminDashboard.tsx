@@ -3,6 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../services/api";
 
+interface ServiceItem {
+  service: string;
+  trade_license: string;
+  skill_certificate: string;
+}
+
 interface ProviderProfile {
   id: number;
   user_id: number;
@@ -17,8 +23,7 @@ interface ProviderProfile {
   category_id: number;
   FAN_number: string;
   national_id_photo: string;
-  trade_license: string;
-  skill_certificate: string;
+  services: ServiceItem[];
   image: string;
   verification_status: "pending" | "under_review" | "approved" | "rejected";
   rejection_reason: string;
@@ -26,6 +31,14 @@ interface ProviderProfile {
   suspension_reason: string;
   createdAt: string;
 }
+
+const serviceIcons: Record<string, string> = {
+  "Plumbing": "🔧", "Electrical": "⚡", "Cleaning": "🧹",
+  "Painting": "🎨", "Carpentry": "🪚", "AC Repair": "❄️",
+  "Auto Service": "🚗", "Electronics": "📱", "Masonry": "🧱",
+  "Welding": "🔥", "Tiling": "🪟", "Landscaping": "🌿",
+  "Moving": "📦", "Security": "🔒", "IT Support": "💻"
+};
 
 function AdminDashboard() {
   const { user, logout } = useAuth();
@@ -41,6 +54,7 @@ function AdminDashboard() {
   const [message, setMessage] = useState("");
   const [profileDropdown, setProfileDropdown] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "documents" | "actions">("details");
+  const [expandedService, setExpandedService] = useState<string | null>(null);
 
   useEffect(() => {
     if (user?.role !== "admin") {
@@ -143,6 +157,56 @@ function AdminDashboard() {
     }
   };
 
+  const renderDocPreview = (value: string, label: string) => {
+    if (!value) return (
+      <div className="flex items-center justify-between p-3 rounded-xl border border-red-200 bg-red-50">
+        <div className="flex items-center gap-2">
+          <span>❌</span>
+          <span className="text-sm text-red-500">{label} — Not submitted</span>
+        </div>
+      </div>
+    );
+
+    return (
+      <div className="border border-green-200 bg-green-50 rounded-xl overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-2 border-b border-green-200">
+          <div className="flex items-center gap-2">
+            <span>✅</span>
+            <span className="text-sm font-semibold text-[#0a1f5c]">{label}</span>
+          </div>
+        </div>
+        {value.startsWith("data:image") ? (
+          <img src={value} alt={label} className="w-full max-h-48 object-contain bg-white p-2" />
+        ) : value.startsWith("data:application/pdf") ? (
+          <div className="flex items-center gap-3 p-4 bg-white">
+            <span className="text-3xl">📄</span>
+            <div>
+              <p className="text-sm font-medium text-[#0a1f5c]">PDF Document</p>
+              <a href={value} download={`${label}.pdf`} className="text-xs text-[#1a6ff0] hover:underline cursor-pointer">
+                Download PDF →
+              </a>
+            </div>
+          </div>
+        ) : (
+          <div className="p-4 bg-white">
+            <a href={value} target="_blank" rel="noreferrer" className="text-xs text-[#1a6ff0] hover:underline">
+              View Document →
+            </a>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const getDocumentCompleteness = (p: ProviderProfile) => {
+    const services = Array.isArray(p.services) ? p.services : [];
+    const totalDocs = 1 + (services.length * 2); // national_id + (trade_license + skill_cert per service)
+    const submittedDocs =
+      (p.national_id_photo ? 1 : 0) +
+      services.reduce((acc, s) => acc + (s.trade_license ? 1 : 0) + (s.skill_certificate ? 1 : 0), 0);
+    return { total: totalDocs, submitted: submittedDocs };
+  };
+
   return (
     <div className="min-h-screen bg-[#f5f9ff]">
 
@@ -203,9 +267,9 @@ function AdminDashboard() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm mb-6 flex flex-wrap gap-3 items-center">
+        <div className="bg-white rounded-2xl p-4 shadow-sm mb-6 flex flex-wrap gap-4 items-start">
           <div>
-            <p className="text-xs text-gray-400 mb-2">Verification</p>
+            <p className="text-xs text-gray-400 mb-2 font-semibold uppercase tracking-wide">Verification</p>
             <div className="flex gap-2 flex-wrap">
               {["all", "pending", "under_review", "approved", "rejected"].map(f => (
                 <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer capitalize ${filter === f ? "bg-[#1a6ff0] text-white" : "bg-[#eaf2ff] text-gray-500 hover:bg-[#dbeafe]"}`}>
@@ -215,7 +279,7 @@ function AdminDashboard() {
             </div>
           </div>
           <div className="border-l border-gray-100 pl-4">
-            <p className="text-xs text-gray-400 mb-2">Account Status</p>
+            <p className="text-xs text-gray-400 mb-2 font-semibold uppercase tracking-wide">Account Status</p>
             <div className="flex gap-2">
               {["all", "active", "suspended", "banned"].map(f => (
                 <button key={f} onClick={() => setAccountFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer capitalize ${accountFilter === f ? "bg-[#0a1f5c] text-white" : "bg-[#eaf2ff] text-gray-500 hover:bg-[#dbeafe]"}`}>
@@ -224,7 +288,7 @@ function AdminDashboard() {
               ))}
             </div>
           </div>
-          <button onClick={fetchProviders} className="ml-auto text-xs bg-[#eaf2ff] text-[#1a6ff0] font-semibold px-4 py-2 rounded-xl hover:bg-[#dbeafe] transition cursor-pointer">
+          <button onClick={fetchProviders} className="ml-auto text-xs bg-[#eaf2ff] text-[#1a6ff0] font-semibold px-4 py-2 rounded-xl hover:bg-[#dbeafe] transition cursor-pointer self-end">
             🔄 Refresh
           </button>
         </div>
@@ -250,67 +314,81 @@ function AdminDashboard() {
                   <tr>
                     <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Provider</th>
                     <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Location</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Documents</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Services</th>
+                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Docs</th>
                     <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Verification</th>
                     <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Account</th>
                     <th className="text-left px-6 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {filteredProviders.map(p => (
-                    <tr key={p.id} className="hover:bg-[#f5f9ff] transition">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          {p.image ? (
-                            <img src={p.image} alt={p.business_name} className="w-10 h-10 rounded-xl object-cover" />
-                          ) : (
-                            <div className="w-10 h-10 bg-[#dbeafe] rounded-xl flex items-center justify-center text-sm font-bold text-[#1a6ff0]">
-                              {p.business_name?.[0] || "P"}
+                  {filteredProviders.map(p => {
+                    const services = Array.isArray(p.services) ? p.services : [];
+                    const docs = getDocumentCompleteness(p);
+                    return (
+                      <tr key={p.id} className="hover:bg-[#f5f9ff] transition">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            {p.image ? (
+                              <img src={p.image} alt={p.business_name} className="w-10 h-10 rounded-xl object-cover" />
+                            ) : (
+                              <div className="w-10 h-10 bg-[#dbeafe] rounded-xl flex items-center justify-center text-sm font-bold text-[#1a6ff0]">
+                                {p.business_name?.[0] || "P"}
+                              </div>
+                            )}
+                            <div>
+                              <p className="text-sm font-semibold text-[#0a1f5c]">{p.business_name}</p>
+                              <p className="text-xs text-gray-400">{p.phone}</p>
+                              <p className="text-xs text-gray-300">User #{p.user_id}</p>
                             </div>
-                          )}
-                          <div>
-                            <p className="text-sm font-semibold text-[#0a1f5c]">{p.business_name}</p>
-                            <p className="text-xs text-gray-400">{p.phone}</p>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-sm text-gray-600">{p.city}</p>
-                        <p className="text-xs text-gray-400">{p.sub_city}, Woreda {p.woreda}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="space-y-1">
-                          <div className={`flex items-center gap-1 text-xs ${p.national_id_photo ? "text-green-500" : "text-red-400"}`}>
-                            <span>{p.national_id_photo ? "✅" : "❌"}</span><span>National ID</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-sm text-gray-600">{p.city}</p>
+                          <p className="text-xs text-gray-400">{p.sub_city}, Woreda {p.woreda}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-wrap gap-1">
+                            {services.slice(0, 3).map((s, i) => (
+                              <span key={i} className="text-xs bg-[#eaf2ff] text-[#1a6ff0] px-2 py-0.5 rounded-full">
+                                {serviceIcons[s.service]} {s.service}
+                              </span>
+                            ))}
+                            {services.length > 3 && (
+                              <span className="text-xs text-gray-400">+{services.length - 3} more</span>
+                            )}
                           </div>
-                          <div className={`flex items-center gap-1 text-xs ${p.trade_license ? "text-green-500" : "text-red-400"}`}>
-                            <span>{p.trade_license ? "✅" : "❌"}</span><span>Trade License</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className={`text-xs font-semibold px-2 py-1 rounded-lg ${
+                            docs.submitted === docs.total ? "bg-green-100 text-green-600" :
+                            docs.submitted === 0 ? "bg-red-100 text-red-400" :
+                            "bg-yellow-100 text-yellow-600"
+                          }`}>
+                            {docs.submitted}/{docs.total} docs
                           </div>
-                          <div className={`flex items-center gap-1 text-xs ${p.skill_certificate ? "text-green-500" : "text-red-400"}`}>
-                            <span>{p.skill_certificate ? "✅" : "❌"}</span><span>Certificate</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-block text-xs font-semibold px-3 py-1 rounded-full capitalize ${verificationStatusColor(p.verification_status)}`}>
-                          {p.verification_status?.replace("_", " ")}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-block text-xs font-semibold px-3 py-1 rounded-full capitalize ${accountStatusColor(p.account_status)}`}>
-                          {p.account_status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <button
-                          onClick={() => { setSelectedProvider(p); setActiveTab("details"); setRejectionReason(""); setSuspensionReason(""); }}
-                          className="text-xs bg-[#eaf2ff] text-[#1a6ff0] font-semibold px-3 py-1.5 rounded-lg hover:bg-[#dbeafe] transition cursor-pointer"
-                        >
-                          Manage →
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-block text-xs font-semibold px-3 py-1 rounded-full capitalize ${verificationStatusColor(p.verification_status)}`}>
+                            {p.verification_status?.replace("_", " ")}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-block text-xs font-semibold px-3 py-1 rounded-full capitalize ${accountStatusColor(p.account_status)}`}>
+                            {p.account_status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <button
+                            onClick={() => { setSelectedProvider(p); setActiveTab("details"); setRejectionReason(""); setSuspensionReason(""); setExpandedService(null); }}
+                            className="text-xs bg-[#eaf2ff] text-[#1a6ff0] font-semibold px-3 py-1.5 rounded-lg hover:bg-[#dbeafe] transition cursor-pointer"
+                          >
+                            Manage →
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -324,7 +402,7 @@ function AdminDashboard() {
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
 
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-[#0a1f5c] to-[#1a6ff0] px-8 py-6 rounded-t-3xl flex items-center justify-between sticky top-0">
+            <div className="bg-gradient-to-r from-[#0a1f5c] to-[#1a6ff0] px-8 py-6 rounded-t-3xl flex items-center justify-between sticky top-0 z-10">
               <div className="flex items-center gap-3">
                 {selectedProvider.image ? (
                   <img src={selectedProvider.image} alt="" className="w-12 h-12 rounded-xl object-cover border-2 border-white" />
@@ -349,7 +427,7 @@ function AdminDashboard() {
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-gray-100 px-8">
+            <div className="flex border-b border-gray-100 px-8 sticky top-[88px] bg-white z-10">
               {(["details", "documents", "actions"] as const).map(tab => (
                 <button
                   key={tab}
@@ -359,6 +437,16 @@ function AdminDashboard() {
                   }`}
                 >
                   {tab}
+                  {tab === "documents" && (() => {
+                    const docs = getDocumentCompleteness(selectedProvider);
+                    return (
+                      <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${
+                        docs.submitted === docs.total ? "bg-green-100 text-green-600" : "bg-yellow-100 text-yellow-600"
+                      }`}>
+                        {docs.submitted}/{docs.total}
+                      </span>
+                    );
+                  })()}
                 </button>
               ))}
             </div>
@@ -367,38 +455,69 @@ function AdminDashboard() {
 
               {/* Details Tab */}
               {activeTab === "details" && (
-                <div className="grid grid-cols-2 gap-4">
-                  {[
-                    { label: "Business Name", value: selectedProvider.business_name },
-                    { label: "Phone", value: selectedProvider.phone },
-                    { label: "City", value: selectedProvider.city },
-                    { label: "Sub City", value: selectedProvider.sub_city },
-                    { label: "Woreda", value: selectedProvider.woreda },
-                    { label: "Location", value: selectedProvider.location },
-                    { label: "Price", value: `ETB ${selectedProvider.price}` },
-                    { label: "FAN Number", value: selectedProvider.FAN_number },
-                    { label: "User ID", value: `#${selectedProvider.user_id}` },
-                    { label: "Applied", value: new Date(selectedProvider.createdAt).toLocaleDateString() },
-                  ].map((f, i) => (
-                    <div key={i}>
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">{f.label}</p>
-                      <p className="text-sm font-medium text-[#0a1f5c]">{f.value || "—"}</p>
-                    </div>
-                  ))}
+                <div>
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    {[
+                      { label: "Business Name", value: selectedProvider.business_name },
+                      { label: "Phone", value: selectedProvider.phone },
+                      { label: "City", value: selectedProvider.city },
+                      { label: "Sub City", value: selectedProvider.sub_city },
+                      { label: "Woreda", value: selectedProvider.woreda },
+                      { label: "Location", value: selectedProvider.location },
+                      { label: "Price", value: `ETB ${selectedProvider.price}` },
+                      { label: "FAN Number", value: selectedProvider.FAN_number },
+                      { label: "User ID", value: `#${selectedProvider.user_id}` },
+                      { label: "Applied", value: new Date(selectedProvider.createdAt).toLocaleDateString() },
+                    ].map((f, i) => (
+                      <div key={i}>
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">{f.label}</p>
+                        <p className="text-sm font-medium text-[#0a1f5c]">{f.value || "—"}</p>
+                      </div>
+                    ))}
+                  </div>
+
                   {selectedProvider.description && (
-                    <div className="col-span-2">
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Description</p>
+                    <div className="mb-6">
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Description</p>
                       <p className="text-sm text-gray-600 bg-[#f5f9ff] rounded-xl p-4">{selectedProvider.description}</p>
                     </div>
                   )}
+
+                  {/* Services Summary */}
+                  <div className="mb-6">
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Services Offered</p>
+                    {Array.isArray(selectedProvider.services) && selectedProvider.services.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-3">
+                        {selectedProvider.services.map((svc, i) => (
+                          <div key={i} className="bg-[#eaf2ff] rounded-xl p-3 flex items-center gap-2">
+                            <span className="text-xl">{serviceIcons[svc.service] || "🔨"}</span>
+                            <div>
+                              <p className="text-sm font-semibold text-[#0a1f5c]">{svc.service}</p>
+                              <div className="flex gap-2 mt-0.5">
+                                <span className={`text-xs ${svc.trade_license ? "text-green-500" : "text-red-400"}`}>
+                                  {svc.trade_license ? "✅" : "❌"} License
+                                </span>
+                                <span className={`text-xs ${svc.skill_certificate ? "text-green-500" : "text-gray-400"}`}>
+                                  {svc.skill_certificate ? "✅" : "—"} Cert
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400">No services listed</p>
+                    )}
+                  </div>
+
                   {selectedProvider.rejection_reason && (
-                    <div className="col-span-2 bg-red-50 border border-red-200 rounded-xl p-4">
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
                       <p className="text-xs font-semibold text-red-400 uppercase tracking-wide mb-1">Rejection Reason</p>
                       <p className="text-sm text-red-600">{selectedProvider.rejection_reason}</p>
                     </div>
                   )}
                   {selectedProvider.suspension_reason && (
-                    <div className="col-span-2 bg-orange-50 border border-orange-200 rounded-xl p-4">
+                    <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
                       <p className="text-xs font-semibold text-orange-400 uppercase tracking-wide mb-1">Suspension Reason</p>
                       <p className="text-sm text-orange-600">{selectedProvider.suspension_reason}</p>
                     </div>
@@ -408,39 +527,68 @@ function AdminDashboard() {
 
               {/* Documents Tab */}
               {activeTab === "documents" && (
-                <div className="space-y-4">
-                  {[
-                    { label: "National ID Photo", value: selectedProvider.national_id_photo },
-                    { label: "Trade License", value: selectedProvider.trade_license },
-                    { label: "Skill Certificate", value: selectedProvider.skill_certificate },
-                  ].map((doc, i) => (
-                    <div key={i} className={`p-5 rounded-xl border ${doc.value ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}`}>
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <span>{doc.value ? "✅" : "❌"}</span>
-                          <span className="text-sm font-semibold text-[#0a1f5c]">{doc.label}</span>
-                        </div>
-                        {!doc.value && <span className="text-xs text-red-400 font-medium">Not submitted</span>}
+                <div className="space-y-6">
+
+                  {/* Shared Documents */}
+                  <div>
+                    <h3 className="text-sm font-bold text-[#0a1f5c] uppercase tracking-wide mb-3">Shared Documents</h3>
+                    <div className="space-y-3">
+                      {renderDocPreview(selectedProvider.national_id_photo, "National ID Photo")}
+                      <div className="p-4 bg-[#f5f9ff] rounded-xl border border-[#dbeafe]">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">FAN Number</p>
+                        <p className="text-sm font-medium text-[#0a1f5c]">{selectedProvider.FAN_number || "—"}</p>
                       </div>
-                      {doc.value && (
-                        <div>
-                          {doc.value.startsWith("data:image") ? (
-                            <img src={doc.value} alt={doc.label} className="w-full max-h-48 object-contain rounded-xl border border-gray-200 bg-white" />
-                          ) : doc.value.startsWith("data:application/pdf") ? (
-                            <div className="flex items-center gap-3 bg-white rounded-xl p-3 border border-gray-200">
-                              <span className="text-2xl">📄</span>
-                              <div>
-                                <p className="text-sm font-medium text-[#0a1f5c]">PDF Document</p>
-                                <a href={doc.value} download={`${doc.label}.pdf`} className="text-xs text-[#1a6ff0] hover:underline">Download →</a>
-                              </div>
-                            </div>
-                          ) : (
-                            <a href={doc.value} target="_blank" rel="noreferrer" className="text-xs text-[#1a6ff0] font-semibold hover:underline">View Document →</a>
-                          )}
-                        </div>
-                      )}
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Per-Service Documents */}
+                  {Array.isArray(selectedProvider.services) && selectedProvider.services.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-bold text-[#0a1f5c] uppercase tracking-wide mb-3">Per-Service Documents</h3>
+                      <div className="space-y-4">
+                        {selectedProvider.services.map((svc, i) => (
+                          <div key={i} className="border-2 border-[#dbeafe] rounded-2xl overflow-hidden">
+                            {/* Service Header */}
+                            <button
+                              onClick={() => setExpandedService(expandedService === svc.service ? null : svc.service)}
+                              className="w-full flex items-center justify-between px-5 py-4 bg-[#f5f9ff] hover:bg-[#eaf2ff] transition cursor-pointer"
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="text-xl">{serviceIcons[svc.service] || "🔨"}</span>
+                                <span className="font-semibold text-[#0a1f5c]">{svc.service}</span>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <div className="flex gap-2">
+                                  <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${svc.trade_license ? "bg-green-100 text-green-600" : "bg-red-100 text-red-400"}`}>
+                                    {svc.trade_license ? "✅ License" : "❌ License"}
+                                  </span>
+                                  <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${svc.skill_certificate ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400"}`}>
+                                    {svc.skill_certificate ? "✅ Cert" : "— Cert"}
+                                  </span>
+                                </div>
+                                <span className="text-gray-400 text-sm">{expandedService === svc.service ? "▲" : "▼"}</span>
+                              </div>
+                            </button>
+
+                            {/* Service Docs */}
+                            {expandedService === svc.service && (
+                              <div className="p-5 space-y-4">
+                                {renderDocPreview(svc.trade_license, `${svc.service} — Trade License`)}
+                                {svc.skill_certificate
+                                  ? renderDocPreview(svc.skill_certificate, `${svc.service} — Skill Certificate`)
+                                  : (
+                                    <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs text-gray-400 flex items-center gap-2">
+                                      <span>—</span> Skill Certificate not submitted (optional)
+                                    </div>
+                                  )
+                                }
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -463,6 +611,7 @@ function AdminDashboard() {
                           <p className="text-xs text-purple-500">Start reviewing this provider's documents</p>
                         </div>
                       </button>
+
                       <button
                         onClick={() => handleVerify(selectedProvider.id, "approved")}
                         disabled={actionLoading || selectedProvider.verification_status === "approved"}
@@ -474,6 +623,7 @@ function AdminDashboard() {
                           <p className="text-xs text-green-500">Provider will be visible to customers</p>
                         </div>
                       </button>
+
                       <div className="bg-red-50 border border-red-200 rounded-xl p-4">
                         <div className="flex items-center gap-3 mb-3">
                           <span className="text-xl">❌</span>
@@ -554,7 +704,7 @@ function AdminDashboard() {
                         <button
                           onClick={() => {
                             if (!confirm("Are you sure you want to permanently ban this provider?")) return;
-                            handleAccountStatus(selectedProvider.id, "banned", suspensionReason || "Account banned by admin");
+                            handleAccountStatus(selectedProvider.id, "banned", "Account banned by admin");
                           }}
                           disabled={actionLoading || selectedProvider.account_status === "banned"}
                           className="w-full bg-red-600 text-white font-semibold py-2 rounded-xl hover:bg-red-700 transition cursor-pointer disabled:opacity-50"

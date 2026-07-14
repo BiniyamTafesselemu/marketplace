@@ -15,6 +15,13 @@ const ProviderProfile = sequelize.define("ProviderProfile", {
         type: DataTypes.INTEGER,
         allowNull: false,
     },
+    business_name: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
+    phone: {
+        type: DataTypes.STRING,
+    },
     description: {
         type: DataTypes.TEXT,
     },
@@ -34,6 +41,14 @@ const ProviderProfile = sequelize.define("ProviderProfile", {
         type: DataTypes.STRING,
         allowNull: false,
     },
+    price: {
+        type: DataTypes.STRING,
+    },
+    image: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+    },
+    // Shared identity documents
     national_id_photo: {
         type: DataTypes.TEXT,
         allowNull: true,
@@ -42,21 +57,20 @@ const ProviderProfile = sequelize.define("ProviderProfile", {
         type: DataTypes.STRING,
         allowNull: false,
     },
-    price: {
-        type: DataTypes.STRING,
-        
-    },
-    phone: {
-        type: DataTypes.STRING,
-    },
-    image: {
+    // Services with per-service documents stored as JSON
+    // Format: [{ service: "Plumbing", trade_license: "base64...", skill_certificate: "base64..." }]
+    services: {
         type: DataTypes.TEXT,
         allowNull: true,
+        get() {
+            const val = this.getDataValue("services");
+            try { return val ? JSON.parse(val) : []; } catch { return []; }
+        },
+        set(val) {
+            this.setDataValue("services", JSON.stringify(val));
+        }
     },
-    business_name: {
-        type: DataTypes.STRING,
-        allowNull: false,
-    },
+    // Legacy single doc fields kept for backward compat
     trade_license: {
         type: DataTypes.TEXT,
         allowNull: true,

@@ -2,11 +2,12 @@ const express = require('express');
 const cors = require("cors");
 const session = require("express-session");
 const passport = require("passport");
-const category = require("./routes/categoryRoutes")
-const provider = require("./routes/providerRoutes")
-const booking = require("./routes/bookingRoutes")
-const review = require("./routes/reviewRoutes")
-const payment = require("./routes/paymentRoutes") 
+const category = require("./routes/categoryRoutes");
+const provider = require("./routes/providerRoutes");
+const providerService = require("./routes/providerServiceRoutes");
+const booking = require("./routes/bookingRoutes");
+const review = require("./routes/reviewRoutes");
+const payment = require("./routes/paymentRoutes");
 require("./config/passport");
 
 const authRoutes = require("./routes/authRoutes");
@@ -14,12 +15,8 @@ const authRoutes = require("./routes/authRoutes");
 const app = express();
 
 app.use(cors());
-// app.use(express.json());
 app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({
-    extended: true,
-    limit: "50mb"
-}));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
 app.use(session({
   secret: process.env.JWT_SECRET,
@@ -33,6 +30,7 @@ app.use(passport.session());
 app.use("/auth", authRoutes);
 app.use("/categories", category);
 app.use("/providers", provider);
+app.use("/services", providerService);
 app.use("/bookings", booking);
 app.use("/reviews", review);
 app.use("/payments", payment);

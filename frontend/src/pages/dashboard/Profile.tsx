@@ -57,11 +57,6 @@ const serviceIcons: Record<string, string> = {
 
 const PAYMENT_METHODS = ["Telebirr", "CBE Birr", "Amole", "HelloCash", "Cash", "Bank Transfer"];
 
-const paymentIcons: Record<string, string> = {
-  "Telebirr": "📱", "CBE Birr": "🏦", "Amole": "💳",
-  "HelloCash": "💵", "Cash": "💰", "Bank Transfer": "🏛️"
-};
-
 const statusColor = (status: string) => {
   switch (status) {
     case "approved": return "bg-green-100 text-green-600";

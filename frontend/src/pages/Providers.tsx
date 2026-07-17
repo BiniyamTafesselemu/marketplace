@@ -62,7 +62,12 @@ function Providers() {
     const fetchData = async () => {
       try {
         const res = await api.get("/services");
-        setServices(res.data);
+        // Show all services that have a valid ProviderProfile
+        const validServices = res.data.filter(
+          (s: ServiceCard) => s.ProviderProfile !== null && s.ProviderProfile !== undefined
+        );
+        setServices(validServices);
+
         if (isAuthenticated) {
           try {
             const profileRes = await api.get("/providers/profile");
@@ -89,24 +94,24 @@ function Providers() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const cities = [...new Set(services.map(s => s.ProviderProfile?.city).filter(Boolean))].sort();
+  const cities = [...new Set(services.map(s => s.ProviderProfile?.city).filter(Boolean))].sort() as string[];
   const subCities = [...new Set(
     services
       .filter(s => !selectedCity || s.ProviderProfile?.city === selectedCity)
       .map(s => s.ProviderProfile?.sub_city)
       .filter(Boolean)
-  )].sort();
+  )].sort() as string[];
 
-  // Available services from actual data (sorted alphabetically)
-  const availableServices = [...new Set(services.map(s => s.service).filter(Boolean))].sort();
+  const availableServices = [...new Set(services.map(s => s.service).filter(Boolean))].sort() as string[];
 
-  // Filtered services for dropdown suggestions based on search input
   const searchSuggestions = ALL_SERVICES.filter(svc =>
     svc.toLowerCase().includes(search.toLowerCase()) && search.length > 0
   );
 
   const filteredServices = services
     .filter(s => {
+      if (!s.ProviderProfile) return false;
+
       const matchesSearch = search
         ? s.service?.toLowerCase().includes(search.toLowerCase()) ||
           s.ProviderProfile?.business_name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -136,7 +141,7 @@ function Providers() {
     setSearchDropdownOpen(false);
   };
 
-  const hasActiveFilters = search || selectedService || selectedCity || selectedSubCity || selectedPayment;
+  const hasActiveFilters = !!(search || selectedService || selectedCity || selectedSubCity || selectedPayment);
 
   return (
     <div className="min-h-screen bg-[#f5f9ff]">
@@ -175,7 +180,6 @@ function Providers() {
         <h1 className="text-3xl lg:text-4xl font-bold text-white mb-3">Find a Service</h1>
         <p className="text-blue-100 mb-8">Browse verified services across Addis Ababa and beyond</p>
 
-        {/* Search with Dropdown */}
         <div className="max-w-3xl mx-auto flex gap-3 flex-wrap justify-center">
           <div ref={searchRef} className="flex-1 min-w-64 relative">
             <div className="flex items-center gap-2 bg-white rounded-xl px-4 py-3 shadow-md">
@@ -196,17 +200,17 @@ function Providers() {
               </button>
             </div>
 
-            {/* Dropdown */}
+            {/* Search Dropdown */}
             {searchDropdownOpen && (
               <div className="absolute top-14 left-0 right-0 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden max-h-80 overflow-y-auto">
-                
-                {/* Search suggestions */}
+
+                {/* Matching suggestions when typing */}
                 {search && searchSuggestions.length > 0 && (
                   <div className="border-b border-gray-50">
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-2">Matching Services</p>
                     {searchSuggestions.map(svc => (
                       <button
-                        key={svc}
+                        key={`suggestion-${svc}`}
                         onClick={() => { setSearch(svc); setSelectedService(svc); setSearchDropdownOpen(false); }}
                         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[#eaf2ff] transition cursor-pointer text-left"
                       >
@@ -220,31 +224,33 @@ function Providers() {
                   </div>
                 )}
 
-                {/* All available services alphabetically */}
-                <div>
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-2">
-                    {search ? "All Services" : "Browse by Service"}
-                  </p>
-                  {availableServices.length > 0 ? (
-                    availableServices.map(svc => (
+                {/* All available services from DB alphabetically */}
+                {availableServices.length > 0 ? (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-2">
+                      {search ? "All Service Types" : "Browse by Service"}
+                    </p>
+                    {availableServices.map(svc => (
                       <button
-                        key={svc}
+                        key={`available-${svc}`}
                         onClick={() => { setSearch(svc); setSelectedService(svc); setSearchDropdownOpen(false); }}
                         className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-[#eaf2ff] transition cursor-pointer text-left ${selectedService === svc ? "bg-[#eaf2ff]" : ""}`}
                       >
-                        <span className="text-xl">{serviceIcons[svc]}</span>
+                        <span className="text-xl">{serviceIcons[svc] || "🔨"}</span>
                         <span className="text-sm font-medium text-[#0a1f5c]">{svc}</span>
                         <span className="ml-auto text-xs bg-[#eaf2ff] text-[#1a6ff0] px-2 py-0.5 rounded-full font-semibold">
                           {services.filter(s => s.service === svc).length}
                         </span>
                       </button>
-                    ))
-                  ) : (
-                    <p className="text-sm text-gray-400 px-4 py-3">No services available yet</p>
-                  )}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="px-4 py-6 text-center">
+                    <p className="text-sm text-gray-400">No services available yet</p>
+                  </div>
+                )}
 
-                {/* Show all results option */}
+                {/* Search all option */}
                 {search && (
                   <div className="border-t border-gray-50">
                     <button
@@ -260,7 +266,6 @@ function Providers() {
             )}
           </div>
 
-          {/* City Filter */}
           <select
             value={selectedCity}
             onChange={e => { setSelectedCity(e.target.value); setSelectedSubCity(""); }}
@@ -302,7 +307,7 @@ function Providers() {
           </div>
         )}
 
-        {/* Service Type Pills — alphabetical */}
+        {/* Service Type Pills */}
         <div className="mb-6">
           <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">Browse by Service Type</h2>
           <div className="flex gap-3 flex-wrap">
@@ -315,11 +320,11 @@ function Providers() {
             </button>
             {availableServices.map(svc => (
               <button
-                key={svc}
+                key={`pill-${svc}`}
                 onClick={() => { setSelectedService(svc); setSearch(svc); setSearchDropdownOpen(false); }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer ${selectedService === svc ? "bg-[#1a6ff0] text-white" : "bg-white text-gray-500 hover:bg-[#eaf2ff]"}`}
               >
-                <span>{serviceIcons[svc]}</span>
+                <span>{serviceIcons[svc] || "🔨"}</span>
                 {svc}
                 <span className="text-xs opacity-70">({services.filter(s => s.service === svc).length})</span>
               </button>
@@ -366,7 +371,7 @@ function Providers() {
           <div className="flex gap-2 flex-wrap mb-6">
             {selectedService && (
               <span className="flex items-center gap-1 text-xs bg-[#1a6ff0] text-white px-3 py-1 rounded-full font-semibold">
-                {serviceIcons[selectedService]} {selectedService}
+                {serviceIcons[selectedService] || "🔨"} {selectedService}
                 <button onClick={() => { setSelectedService(""); setSearch(""); }} className="ml-1 hover:opacity-70 cursor-pointer">×</button>
               </span>
             )}
@@ -406,7 +411,7 @@ function Providers() {
           </p>
         </div>
 
-        {/* Services Grid — one card per service per provider */}
+        {/* Services Grid */}
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1,2,3,4,5,6].map(i => (
@@ -438,9 +443,9 @@ function Providers() {
             {filteredServices.map(svc => {
               const provider = svc.ProviderProfile;
               return (
-                <div key={svc.id} className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition overflow-hidden group">
+                <div key={svc.id} className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition overflow-hidden">
 
-                  {/* Service Type Banner */}
+                  {/* Service Banner */}
                   <div className="bg-gradient-to-r from-[#eaf2ff] to-[#dbeafe] px-6 py-4 flex items-center gap-3">
                     <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm flex-shrink-0">
                       {serviceIcons[svc.service] || "🔨"}
@@ -449,7 +454,13 @@ function Providers() {
                       <p className="font-bold text-[#1a6ff0] text-base">{svc.service}</p>
                       <p className="text-xs text-gray-500 font-medium truncate">{provider?.business_name}</p>
                     </div>
-                    <span className="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded-full font-semibold flex-shrink-0">Active</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold flex-shrink-0 ${
+                      svc.status === "approved" ? "bg-green-100 text-green-600" :
+                      svc.status === "pending" ? "bg-yellow-100 text-yellow-600" :
+                      "bg-red-100 text-red-400"
+                    }`}>
+                      {svc.status === "approved" ? "Active" : svc.status === "pending" ? "Pending" : "Rejected"}
+                    </span>
                   </div>
 
                   {/* Provider Info */}
@@ -471,19 +482,15 @@ function Providers() {
 
                   {/* Card Body */}
                   <div className="px-6 py-4">
-
-                    {/* Rating */}
                     <div className="flex items-center gap-1 mb-3">
                       {[1,2,3,4,5].map(i => <span key={i} className="text-yellow-400 text-sm">★</span>)}
                       <span className="text-xs text-gray-400 ml-1">New</span>
                     </div>
 
-                    {/* Description */}
                     {svc.description && (
                       <p className="text-sm text-gray-500 mb-4 line-clamp-2">{svc.description}</p>
                     )}
 
-                    {/* Details */}
                     <div className="space-y-1.5 mb-4">
                       {provider?.phone && (
                         <div className="flex items-center gap-2 text-xs text-gray-400">
@@ -498,19 +505,17 @@ function Providers() {
                       <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
                         <span>{paymentIcons[svc.payment_method] || "💳"}</span>
                         <span>{svc.payment_method}</span>
-                        <span className="text-gray-400">·</span>
+                        <span className="text-gray-300">·</span>
                         <span className="text-gray-400">{svc.payment_account}</span>
                       </div>
                     </div>
 
-                    {/* Tags */}
                     <div className="flex gap-2 mb-4 flex-wrap">
                       {provider?.city && <span className="text-xs bg-[#eaf2ff] text-[#1a6ff0] px-2 py-0.5 rounded-full">{provider.city}</span>}
                       {provider?.sub_city && <span className="text-xs bg-[#eaf2ff] text-[#1a6ff0] px-2 py-0.5 rounded-full">{provider.sub_city}</span>}
                       <span className="text-xs bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full">{svc.payment_method}</span>
                     </div>
 
-                    {/* Price & Book */}
                     <div className="flex items-center justify-between pt-4 border-t border-gray-50">
                       <div>
                         <p className="text-xs text-gray-400">Starting from</p>

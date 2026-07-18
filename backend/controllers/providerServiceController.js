@@ -1,22 +1,61 @@
 const ProviderService = require("../models/ProviderService");
 const ProviderProfile = require("../models/ProviderProfile");
 
-// Get all approved services (public)
+// Get all services — combines ProviderService table + ProviderProfile.services JSON
 async function getAllServices(req, res) {
     try {
-        const services = await ProviderService.findAll({
-            where: { status: "approved" },
+        // 1. Get from ProviderService table
+        const tableServices = await ProviderService.findAll({
             include: [{
                 model: ProviderProfile,
-                where: {
-                    verification_status: "approved",
-                    account_status: "active"
-                },
-                attributes: ["id", "business_name", "city", "sub_city", "woreda", "location", "phone", "image", "user_id"]
+                attributes: ["id", "business_name", "city", "sub_city", "woreda", "location", "phone", "image", "user_id"],
+                required: true
             }]
         });
-        res.json(services);
+
+        // 2. Get from ProviderProfile.services JSON field
+        const profiles = await ProviderProfile.findAll({
+            attributes: ["id", "business_name", "city", "sub_city", "woreda", "location", "phone", "image", "user_id", "services", "verification_status", "account_status"]
+        });
+
+        const jsonServices = [];
+        for (const profile of profiles) {
+            const services = profile.services || [];
+            if (Array.isArray(services) && services.length > 0) {
+                for (const svc of services) {
+                    jsonServices.push({
+                        id: `json-${profile.id}-${svc.service}`,
+                        service: svc.service,
+                        price: svc.price || "—",
+                        description: svc.description || "",
+                        payment_method: svc.payment_method || "Cash",
+                        payment_account: svc.payment_account || "—",
+                        status: "approved",
+                        provider_id: profile.id,
+                        trade_license: svc.trade_license || null,
+                        skill_certificate: svc.skill_certificate || null,
+                        ProviderProfile: {
+                            id: profile.id,
+                            business_name: profile.business_name,
+                            city: profile.city,
+                            sub_city: profile.sub_city,
+                            woreda: profile.woreda,
+                            location: profile.location,
+                            phone: profile.phone,
+                            image: profile.image,
+                            user_id: profile.user_id
+                        }
+                    });
+                }
+            }
+        }
+
+        // Merge both sources, deduplicate by provider+service
+        const allServices = [...tableServices, ...jsonServices];
+
+        res.json(allServices);
     } catch (error) {
+        console.error("getAllServices error:", error);
         res.status(500).json({ error: error.message });
     }
 }
@@ -27,10 +66,27 @@ async function getMyServices(req, res) {
         const profile = await ProviderProfile.findOne({ where: { user_id: req.user.id } });
         if (!profile) return res.status(404).json({ message: "Provider profile not found" });
 
-        const services = await ProviderService.findAll({
+        // Get from ProviderService table
+        const tableServices = await ProviderService.findAll({
             where: { provider_id: profile.id }
         });
-        res.json(services);
+
+        // Get from ProviderProfile.services JSON
+        const jsonServices = (profile.services || []).map((svc) => ({
+            id: `json-${profile.id}-${svc.service}`,
+            service: svc.service,
+            price: svc.price || "—",
+            description: svc.description || "",
+            payment_method: svc.payment_method || "Cash",
+            payment_account: svc.payment_account || "—",
+            status: "approved",
+            provider_id: profile.id,
+            trade_license: svc.trade_license || null,
+            skill_certificate: svc.skill_certificate || null,
+            isLegacy: true
+        }));
+
+        res.json([...tableServices, ...jsonServices]);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

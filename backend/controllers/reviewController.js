@@ -1,4 +1,5 @@
-const review = require("../models/Review");
+// const review = require("../models/Review");
+const { Review } = require("../models");
 
 async function getAllReviews(req, res) {
     try {

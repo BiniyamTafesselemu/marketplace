@@ -1,4 +1,5 @@
-const booking = require('../models/Booking')
+// const booking = require('../models/Booking')
+const { Booking } = require("../models");
 
 async function getAllBookings(req, res) {
     try {

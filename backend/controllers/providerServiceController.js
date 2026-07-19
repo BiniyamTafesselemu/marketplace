@@ -1,98 +1,37 @@
-const ProviderService = require("../models/ProviderService");
-const ProviderProfile = require("../models/ProviderProfile");
+const { ProviderService, ProviderProfile } = require("../models");
 
-// Get all services — combines ProviderService table + ProviderProfile.services JSON
 async function getAllServices(req, res) {
     try {
-        // 1. Get from ProviderService table
-        const tableServices = await ProviderService.findAll({
+        const services = await ProviderService.findAll({
             include: [{
                 model: ProviderProfile,
                 attributes: ["id", "business_name", "city", "sub_city", "woreda", "location", "phone", "image", "user_id"],
                 required: true
-            }]
+            }],
+            order: [["createdAt", "DESC"]]
         });
-
-        // 2. Get from ProviderProfile.services JSON field
-        const profiles = await ProviderProfile.findAll({
-            attributes: ["id", "business_name", "city", "sub_city", "woreda", "location", "phone", "image", "user_id", "services", "verification_status", "account_status"]
-        });
-
-        const jsonServices = [];
-        for (const profile of profiles) {
-            const services = profile.services || [];
-            if (Array.isArray(services) && services.length > 0) {
-                for (const svc of services) {
-                    jsonServices.push({
-                        id: `json-${profile.id}-${svc.service}`,
-                        service: svc.service,
-                        price: svc.price || "—",
-                        description: svc.description || "",
-                        payment_method: svc.payment_method || "Cash",
-                        payment_account: svc.payment_account || "—",
-                        status: "approved",
-                        provider_id: profile.id,
-                        trade_license: svc.trade_license || null,
-                        skill_certificate: svc.skill_certificate || null,
-                        ProviderProfile: {
-                            id: profile.id,
-                            business_name: profile.business_name,
-                            city: profile.city,
-                            sub_city: profile.sub_city,
-                            woreda: profile.woreda,
-                            location: profile.location,
-                            phone: profile.phone,
-                            image: profile.image,
-                            user_id: profile.user_id
-                        }
-                    });
-                }
-            }
-        }
-
-        // Merge both sources, deduplicate by provider+service
-        const allServices = [...tableServices, ...jsonServices];
-
-        res.json(allServices);
+        res.json(services);
     } catch (error) {
-        console.error("getAllServices error:", error);
+        console.error("getAllServices error:", error.message);
         res.status(500).json({ error: error.message });
     }
 }
 
-// Get my services (provider)
 async function getMyServices(req, res) {
     try {
         const profile = await ProviderProfile.findOne({ where: { user_id: req.user.id } });
         if (!profile) return res.status(404).json({ message: "Provider profile not found" });
 
-        // Get from ProviderService table
-        const tableServices = await ProviderService.findAll({
-            where: { provider_id: profile.id }
+        const services = await ProviderService.findAll({
+            where: { provider_id: profile.id },
+            order: [["createdAt", "DESC"]]
         });
-
-        // Get from ProviderProfile.services JSON
-        const jsonServices = (profile.services || []).map((svc) => ({
-            id: `json-${profile.id}-${svc.service}`,
-            service: svc.service,
-            price: svc.price || "—",
-            description: svc.description || "",
-            payment_method: svc.payment_method || "Cash",
-            payment_account: svc.payment_account || "—",
-            status: "approved",
-            provider_id: profile.id,
-            trade_license: svc.trade_license || null,
-            skill_certificate: svc.skill_certificate || null,
-            isLegacy: true
-        }));
-
-        res.json([...tableServices, ...jsonServices]);
+        res.json(services);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 }
 
-// Add a service
 async function addService(req, res) {
     try {
         const profile = await ProviderProfile.findOne({ where: { user_id: req.user.id } });
@@ -125,7 +64,6 @@ async function addService(req, res) {
     }
 }
 
-// Update a service
 async function updateService(req, res) {
     try {
         const profile = await ProviderProfile.findOne({ where: { user_id: req.user.id } });
@@ -152,7 +90,6 @@ async function updateService(req, res) {
     }
 }
 
-// Delete a service
 async function deleteService(req, res) {
     try {
         const profile = await ProviderProfile.findOne({ where: { user_id: req.user.id } });
@@ -169,14 +106,14 @@ async function deleteService(req, res) {
     }
 }
 
-// Admin — get all services
 async function getAllServicesAdmin(req, res) {
     try {
         const services = await ProviderService.findAll({
             include: [{
                 model: ProviderProfile,
                 attributes: ["id", "business_name", "city", "user_id"]
-            }]
+            }],
+            order: [["createdAt", "DESC"]]
         });
         res.json(services);
     } catch (error) {
@@ -184,7 +121,6 @@ async function getAllServicesAdmin(req, res) {
     }
 }
 
-// Admin — update service status
 async function updateServiceStatus(req, res) {
     try {
         const { id } = req.params;

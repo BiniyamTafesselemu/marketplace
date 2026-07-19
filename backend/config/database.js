@@ -8,16 +8,15 @@ const sequelize = new Sequelize(process.env.DB_URL, {
         ssl: {
             require: true,
             rejectUnauthorized: false
-        }
+        },
     },
-    host: "db.awikwkvjdagvziraqbky.supabase.co",
     family: 4,
     pool: {
-        max: 10,
-        min: 2,
-        acquire: 60000,
-        idle: 20000
-}
+        max: 3,
+        min: 1,
+        acquire: 20000,
+        idle: 10000,
+    }
 });
 
 const connectDB = async () => {

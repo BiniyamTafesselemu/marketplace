@@ -1,4 +1,5 @@
 const provider = require("../models/ProviderProfile")
+const { ProviderProfile } = require("../models");
 
 async function getProviderProfile(req, res) {
     try {

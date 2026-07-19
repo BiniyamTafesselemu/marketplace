@@ -23,7 +23,8 @@ Booking.hasOne(Review, { foreignKey: "booking_id" });
 Review.belongsTo(Booking, { foreignKey: "booking_id" });
 
 const syncDB = async () => {
-    await sequelize.sync();
+    // Only create tables if they don't exist — never alter
+    await sequelize.sync({ force: false });
     console.log("All tables synced");
 };
 

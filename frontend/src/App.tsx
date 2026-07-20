@@ -14,6 +14,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import './App.css'
 import Providers from './pages/Providers'
 import AdminDashboard from './pages/admin/AdminDashboard'
+import ProviderDetail from './pages/ProviderDetail'
 
 function App() {
   const { login } = useAuth();
@@ -42,6 +43,7 @@ function App() {
       <Route path="/dashboard/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/dashboard/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+      <Route path="/providers/:id" element={<ProviderDetail />} />
 
     </Routes>
   )

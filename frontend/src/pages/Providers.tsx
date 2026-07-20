@@ -62,9 +62,11 @@ function Providers() {
     const fetchData = async () => {
       try {
         const res = await api.get("/services");
-        // Show all services that have a valid ProviderProfile
+        // Show only approved services that have a valid ProviderProfile
         const validServices = res.data.filter(
-          (s: ServiceCard) => s.ProviderProfile !== null && s.ProviderProfile !== undefined
+          (s: ServiceCard) => 
+            (s.ProviderProfile !== null && s.ProviderProfile !== undefined) &&
+            s.status === "approved"
         );
         setServices(validServices);
 

@@ -3,10 +3,15 @@ const { ProviderService, ProviderProfile } = require("../models");
 async function getAllServices(req, res) {
     try {
         const services = await ProviderService.findAll({
+            where: { status: "approved" },
             include: [{
                 model: ProviderProfile,
                 attributes: ["id", "business_name", "city", "sub_city", "woreda", "location", "phone", "image", "user_id"],
-                required: true
+                required: true,
+                where: {
+                    verification_status: "approved",
+                    account_status: "active"
+                }
             }],
             order: [["createdAt", "DESC"]]
         });
@@ -81,6 +86,7 @@ async function updateService(req, res) {
         if (skill_certificate) svc.skill_certificate = skill_certificate;
         if (payment_method) svc.payment_method = payment_method;
         if (payment_account) svc.payment_account = payment_account;
+        // Reset to pending when updated
         svc.status = "pending";
 
         await svc.save();
@@ -131,6 +137,7 @@ async function updateServiceStatus(req, res) {
 
         svc.status = status;
         if (rejection_reason) svc.rejection_reason = rejection_reason;
+        else svc.rejection_reason = null;
 
         await svc.save();
         res.json(svc);

@@ -1,12 +1,18 @@
 const { ProviderService, ProviderProfile } = require("../models");
 
+// Public — only approved services from approved active providers
 async function getAllServices(req, res) {
     try {
         const services = await ProviderService.findAll({
+            where: { status: "approved" },
             include: [{
                 model: ProviderProfile,
                 attributes: ["id", "business_name", "city", "sub_city", "woreda", "location", "phone", "image", "user_id"],
-                required: true
+                required: true,
+                where: {
+                    verification_status: "approved",
+                    account_status: "active"
+                }
             }],
             order: [["createdAt", "DESC"]]
         });
@@ -17,6 +23,7 @@ async function getAllServices(req, res) {
     }
 }
 
+// Provider — get own services (all statuses)
 async function getMyServices(req, res) {
     try {
         const profile = await ProviderProfile.findOne({ where: { user_id: req.user.id } });
@@ -32,6 +39,7 @@ async function getMyServices(req, res) {
     }
 }
 
+// Add service — always starts as pending
 async function addService(req, res) {
     try {
         const profile = await ProviderProfile.findOne({ where: { user_id: req.user.id } });
@@ -64,6 +72,7 @@ async function addService(req, res) {
     }
 }
 
+// Update service — resets to pending for re-review
 async function updateService(req, res) {
     try {
         const profile = await ProviderProfile.findOne({ where: { user_id: req.user.id } });
@@ -106,21 +115,24 @@ async function deleteService(req, res) {
     }
 }
 
+// Admin — all services all statuses
 async function getAllServicesAdmin(req, res) {
     try {
         const services = await ProviderService.findAll({
             include: [{
                 model: ProviderProfile,
-                attributes: ["id", "business_name", "city", "user_id"]
+                attributes: ["id", "business_name", "city", "user_id", "image"]
             }],
             order: [["createdAt", "DESC"]]
         });
         res.json(services);
     } catch (error) {
+        console.error("getAllServicesAdmin error:", error.message);
         res.status(500).json({ error: error.message });
     }
 }
 
+// Admin — update individual service status
 async function updateServiceStatus(req, res) {
     try {
         const { id } = req.params;
@@ -130,7 +142,7 @@ async function updateServiceStatus(req, res) {
         if (!svc) return res.status(404).json({ message: "Service not found" });
 
         svc.status = status;
-        if (rejection_reason) svc.rejection_reason = rejection_reason;
+        svc.rejection_reason = rejection_reason || null;
 
         await svc.save();
         res.json(svc);

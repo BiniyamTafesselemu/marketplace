@@ -15,6 +15,7 @@ import './App.css'
 import Providers from './pages/Providers'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import ProviderDetail from './pages/ProviderDetail'
+import ProviderDashboard from './pages/ProviderDashboard'
 
 function App() {
   const { login } = useAuth();
@@ -43,6 +44,7 @@ function App() {
       <Route path="/dashboard/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
       <Route path="/providers/:id" element={<ProviderDetail />} />
+      <Route path="/dashboard/provider" element={<ProtectedRoute><ProviderDashboard /></ProtectedRoute>} />
 
     </Routes>
   )

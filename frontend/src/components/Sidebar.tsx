@@ -34,10 +34,7 @@ function Sidebar() {
             <span className="font-bold text-white text-lg">ServiceHub</span>
           </div>
         )}
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="text-gray-400 hover:text-white transition cursor-pointer ml-auto"
-        >
+        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-gray-400 hover:text-white transition cursor-pointer ml-auto">
           {sidebarOpen ? "◀" : "▶"}
         </button>
       </div>
@@ -55,15 +52,18 @@ function Sidebar() {
             </div>
           </div>
           {user?.role === "admin" && (
-            <span className="inline-block mt-2 text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-semibold">
-              Admin
-            </span>
+            <span className="inline-block mt-2 text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-semibold">Admin</span>
           )}
         </div>
       )}
 
       {/* Nav Items */}
-      <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+
+        {/* Customer Nav */}
+        {sidebarOpen && (
+          <p className="text-xs text-gray-600 uppercase tracking-wide px-4 py-2 font-semibold">Customer</p>
+        )}
         {navItems.map((item, i) => {
           const isActive = location.pathname === item.path;
           return (
@@ -71,9 +71,7 @@ function Sidebar() {
               key={i}
               onClick={() => navigate(item.path)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition cursor-pointer text-left ${
-                isActive
-                  ? "bg-[#1a6ff0] text-white"
-                  : "text-gray-400 hover:bg-[#1a3a7a] hover:text-white"
+                isActive ? "bg-[#1a6ff0] text-white" : "text-gray-400 hover:bg-[#1a3a7a] hover:text-white"
               }`}
             >
               <span className="text-lg flex-shrink-0">{item.icon}</span>
@@ -82,37 +80,38 @@ function Sidebar() {
           );
         })}
 
-        {/* Admin Panel Link */}
+        {/* Provider Nav */}
+        <div className="pt-2">
+          {sidebarOpen && (
+            <p className="text-xs text-gray-600 uppercase tracking-wide px-4 py-2 font-semibold">Provider</p>
+          )}
+          <button
+            onClick={() => navigate("/dashboard/provider")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition cursor-pointer text-left ${
+              location.pathname === "/dashboard/provider" ? "bg-[#1a6ff0] text-white" : "text-gray-400 hover:bg-[#1a3a7a] hover:text-white"
+            }`}
+          >
+            <span className="text-lg flex-shrink-0">🏪</span>
+            {sidebarOpen && <span className="text-sm font-medium">Provider Dashboard</span>}
+          </button>
+        </div>
+
+        {/* Admin Nav */}
         {user?.role === "admin" && (
-          <>
+          <div className="pt-2">
             {sidebarOpen && (
-              <p className="text-xs text-gray-600 uppercase tracking-wide px-4 pt-4 pb-2 font-semibold">
-                Admin
-              </p>
+              <p className="text-xs text-gray-600 uppercase tracking-wide px-4 py-2 font-semibold">Admin</p>
             )}
             <button
               onClick={() => navigate("/admin")}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition cursor-pointer text-left ${
-                location.pathname === "/admin"
-                  ? "bg-red-500 text-white"
-                  : "text-red-400 hover:bg-red-500 hover:text-white"
+                location.pathname === "/admin" ? "bg-red-500 text-white" : "text-red-400 hover:bg-red-500 hover:text-white"
               }`}
             >
               <span className="text-lg flex-shrink-0">🛡️</span>
               {sidebarOpen && <span className="text-sm font-medium">Admin Panel</span>}
             </button>
-            <button
-              onClick={() => navigate("/admin/users")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition cursor-pointer text-left ${
-                location.pathname === "/admin/users"
-                  ? "bg-red-500 text-white"
-                  : "text-red-400 hover:bg-red-500 hover:text-white"
-              }`}
-            >
-              <span className="text-lg flex-shrink-0">👥</span>
-              {sidebarOpen && <span className="text-sm font-medium">Manage Users</span>}
-            </button>
-          </>
+          </div>
         )}
       </nav>
 

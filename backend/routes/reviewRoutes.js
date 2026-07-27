@@ -1,9 +1,17 @@
-const { getAllReviews, getReviewById, createReview, updateReview, deleteReview } = require("../controllers/reviewController");
+const {
+    getAllReviews,
+    getReviewsByProvider,
+    getReviewById,
+    createReview,
+    updateReview,
+    deleteReview
+} = require("../controllers/reviewController");
 const express = require('express');
 const { protect } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
+router.get('/provider/:provider_id', getReviewsByProvider);
 router.get('/', getAllReviews);
 router.get('/:id', getReviewById);
 router.post('/', protect, createReview);

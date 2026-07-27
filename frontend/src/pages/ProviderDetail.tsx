@@ -15,8 +15,6 @@ interface ProviderProfile {
   price: string;
   image: string;
   user_id: number;
-  verification_status: string;
-  account_status: string;
 }
 
 interface ServiceItem {
@@ -27,6 +25,7 @@ interface ServiceItem {
   payment_method: string;
   payment_account: string;
   status: string;
+  provider_id: number;
 }
 
 interface Review {
@@ -34,6 +33,8 @@ interface Review {
   rating: number;
   comment: string;
   customer_id: number;
+  provider_id: number;
+  booking_id: number;
   createdAt: string;
 }
 
@@ -64,25 +65,23 @@ function ProviderDetail() {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [bookingError, setBookingError] = useState("");
-  const [showBookingForm, setShowBookingForm] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch provider profile
-        const providersRes = await api.get("/providers");
+        const [providersRes, servicesRes, reviewsRes] = await Promise.all([
+          api.get("/providers"),
+          api.get("/services"),
+          api.get(`/reviews/provider/${id}`)
+        ]);
+
         const found = providersRes.data.find((p: ProviderProfile) => p.id === Number(id));
         if (found) setProvider(found);
 
-        // Fetch provider services
-        const servicesRes = await api.get("/services");
         const providerServices = servicesRes.data.filter(
-          (s: ServiceItem & { provider_id: number }) => s.provider_id === Number(id)
+          (s: ServiceItem) => s.provider_id === Number(id) && s.status === "approved"
         );
         setServices(providerServices);
-
-        // Fetch reviews
-        const reviewsRes = await api.get("/reviews");
         setReviews(reviewsRes.data);
       } catch (error) {
         console.error("Failed to fetch provider data", error);
@@ -94,31 +93,16 @@ function ProviderDetail() {
   }, [id]);
 
   const handleBook = async () => {
-    if (!isAuthenticated) {
-      navigate("/login");
-      return;
-    }
-    if (!selectedService) {
-      setBookingError("Please select a service");
-      return;
-    }
-    if (!bookingDate) {
-      setBookingError("Please select a date");
-      return;
-    }
+    if (!isAuthenticated) { navigate("/login"); return; }
+    if (!selectedService) { setBookingError("Please select a service"); return; }
+    if (!bookingDate) { setBookingError("Please select a date"); return; }
 
     setBookingLoading(true);
     setBookingError("");
-
     try {
-      await api.post("/bookings", {
-        provider_id: Number(id),
-        date: bookingDate,
-      });
+      await api.post("/bookings", { provider_id: Number(id), date: bookingDate });
       setBookingSuccess(true);
-      setTimeout(() => {
-        navigate("/dashboard/bookings");
-      }, 2000);
+      setTimeout(() => navigate("/dashboard/bookings"), 2000);
     } catch (err: any) {
       setBookingError(err?.response?.data?.message || "Failed to create booking");
     } finally {
@@ -201,13 +185,15 @@ function ProviderDetail() {
             </p>
             <div className="flex gap-3 flex-wrap">
               <span className="text-xs bg-green-400 text-white px-3 py-1 rounded-full font-semibold">✅ Verified</span>
-              {avgRating && (
+              {avgRating ? (
                 <span className="text-xs bg-yellow-400 text-white px-3 py-1 rounded-full font-semibold">
-                  ★ {avgRating} ({reviews.length} reviews)
+                  ★ {avgRating} ({reviews.length} review{reviews.length !== 1 ? "s" : ""})
                 </span>
+              ) : (
+                <span className="text-xs bg-white/20 text-white px-3 py-1 rounded-full font-semibold">No reviews yet</span>
               )}
               <span className="text-xs bg-white/20 text-white px-3 py-1 rounded-full font-semibold">
-                {services.length} Services
+                {services.length} Service{services.length !== 1 ? "s" : ""}
               </span>
               {provider.phone && (
                 <span className="text-xs bg-white/20 text-white px-3 py-1 rounded-full font-semibold">
@@ -222,7 +208,7 @@ function ProviderDetail() {
       <div className="max-w-5xl mx-auto px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-          {/* Left — Provider Info + Services */}
+          {/* Left */}
           <div className="lg:col-span-2 space-y-6">
 
             {/* About */}
@@ -237,20 +223,20 @@ function ProviderDetail() {
             <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
               <div className="px-6 py-5 border-b border-gray-50">
                 <h2 className="text-lg font-bold text-[#0a1f5c]">Services Offered</h2>
-                <p className="text-gray-400 text-sm">{services.length} services available</p>
+                <p className="text-gray-400 text-sm">{services.length} approved services</p>
               </div>
 
               {services.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <span className="text-4xl mb-3">🔨</span>
-                  <p className="text-gray-400">No services listed yet</p>
+                  <p className="text-gray-400">No approved services yet</p>
                 </div>
               ) : (
                 <div className="divide-y divide-gray-50">
                   {services.map(svc => (
                     <div
                       key={svc.id}
-                      onClick={() => { setSelectedService(svc); setShowBookingForm(true); setBookingError(""); }}
+                      onClick={() => { setSelectedService(svc); setBookingError(""); }}
                       className={`px-6 py-5 cursor-pointer transition hover:bg-[#f5f9ff] ${selectedService?.id === svc.id ? "bg-[#eaf2ff] border-l-4 border-[#1a6ff0]" : ""}`}
                     >
                       <div className="flex items-start justify-between gap-4">
@@ -261,20 +247,19 @@ function ProviderDetail() {
                           <div>
                             <p className="font-bold text-[#0a1f5c]">{svc.service}</p>
                             {svc.description && <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{svc.description}</p>}
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-xs text-gray-500">
-                                {paymentIcons[svc.payment_method]} {svc.payment_method} · {svc.payment_account}
-                              </span>
+                            <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                              <span>{paymentIcons[svc.payment_method]}</span>
+                              <span>{svc.payment_method} · {svc.payment_account}</span>
                             </div>
                           </div>
                         </div>
                         <div className="text-right flex-shrink-0">
                           <p className="text-lg font-bold text-[#1a6ff0]">ETB {svc.price}</p>
                           <button
-                            onClick={e => { e.stopPropagation(); setSelectedService(svc); setShowBookingForm(true); setBookingError(""); }}
+                            onClick={e => { e.stopPropagation(); setSelectedService(svc); setBookingError(""); }}
                             className="text-xs bg-[#1a6ff0] text-white px-3 py-1.5 rounded-lg hover:bg-[#1559c7] transition cursor-pointer mt-1"
                           >
-                            Book
+                            Select
                           </button>
                         </div>
                       </div>
@@ -287,36 +272,71 @@ function ProviderDetail() {
             {/* Reviews */}
             <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
               <div className="px-6 py-5 border-b border-gray-50">
-                <h2 className="text-lg font-bold text-[#0a1f5c]">Reviews</h2>
+                <h2 className="text-lg font-bold text-[#0a1f5c]">Customer Reviews</h2>
                 <p className="text-gray-400 text-sm">
                   {reviews.length > 0 ? `${reviews.length} reviews · ★ ${avgRating} average` : "No reviews yet"}
                 </p>
               </div>
 
+              {/* Rating Summary */}
+              {reviews.length > 0 && (
+                <div className="px-6 py-4 border-b border-gray-50 bg-[#f5f9ff]">
+                  <div className="flex items-center gap-6">
+                    <div className="text-center">
+                      <p className="text-4xl font-bold text-[#0a1f5c]">{avgRating}</p>
+                      <div className="flex gap-0.5 justify-center mt-1">
+                        {[1,2,3,4,5].map(i => (
+                          <span key={i} className={`text-lg ${i <= Math.round(Number(avgRating)) ? "text-yellow-400" : "text-gray-200"}`}>★</span>
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">{reviews.length} reviews</p>
+                    </div>
+                    <div className="flex-1 space-y-1.5">
+                      {[5, 4, 3, 2, 1].map(star => {
+                        const count = reviews.filter(r => r.rating === star).length;
+                        const pct = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+                        return (
+                          <div key={star} className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 w-4">{star}</span>
+                            <span className="text-yellow-400 text-xs">★</span>
+                            <div className="flex-1 bg-gray-200 rounded-full h-1.5">
+                              <div className="bg-yellow-400 h-1.5 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="text-xs text-gray-400 w-4">{count}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {reviews.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <span className="text-4xl mb-3">⭐</span>
                   <p className="text-gray-400 font-medium mb-1">No reviews yet</p>
-                  <p className="text-gray-300 text-sm">Be the first to leave a review after booking!</p>
+                  <p className="text-gray-300 text-sm">Be the first to review after your booking!</p>
                 </div>
               ) : (
                 <div className="divide-y divide-gray-50">
-                  {reviews.slice(0, 5).map(r => (
-                    <div key={r.id} className="px-6 py-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 bg-[#dbeafe] rounded-full flex items-center justify-center text-xs font-bold text-[#1a6ff0]">
+                  {reviews.map(r => (
+                    <div key={r.id} className="px-6 py-4 hover:bg-[#f5f9ff] transition">
+                      <div className="flex items-start gap-3">
+                        <div className="w-9 h-9 bg-[#dbeafe] rounded-full flex items-center justify-center text-xs font-bold text-[#1a6ff0] flex-shrink-0">
                           C
                         </div>
-                        <div>
-                          <div className="flex gap-0.5">
-                            {[1,2,3,4,5].map(i => (
-                              <span key={i} className={`text-sm ${i <= r.rating ? "text-yellow-400" : "text-gray-200"}`}>★</span>
-                            ))}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="flex gap-0.5">
+                              {[1,2,3,4,5].map(i => (
+                                <span key={i} className={`text-sm ${i <= r.rating ? "text-yellow-400" : "text-gray-200"}`}>★</span>
+                              ))}
+                            </div>
+                            <span className="text-xs text-gray-400">{new Date(r.createdAt).toLocaleDateString()}</span>
                           </div>
-                          <p className="text-xs text-gray-400">{new Date(r.createdAt).toLocaleDateString()}</p>
+                          {r.comment && <p className="text-sm text-gray-600">{r.comment}</p>}
                         </div>
                       </div>
-                      {r.comment && <p className="text-sm text-gray-600 ml-10">{r.comment}</p>}
                     </div>
                   ))}
                 </div>
@@ -333,20 +353,17 @@ function ProviderDetail() {
               </div>
 
               <div className="p-6">
-
                 {bookingSuccess ? (
                   <div className="text-center py-6">
                     <span className="text-5xl mb-3 block">✅</span>
-                    <p className="font-bold text-green-600 mb-1">Booking Confirmed!</p>
+                    <p className="font-bold text-green-600 mb-1">Booking Submitted!</p>
                     <p className="text-xs text-gray-400">Redirecting to your bookings...</p>
                   </div>
                 ) : (
                   <>
                     {/* Selected Service */}
                     <div className="mb-4">
-                      <label className="text-xs font-semibold text-[#0a1f5c] uppercase tracking-wide mb-2 block">
-                        Selected Service
-                      </label>
+                      <label className="text-xs font-semibold text-[#0a1f5c] uppercase tracking-wide mb-2 block">Selected Service</label>
                       {selectedService ? (
                         <div className="bg-[#eaf2ff] rounded-xl p-4 flex items-center gap-3">
                           <span className="text-2xl">{serviceIcons[selectedService.service] || "🔨"}</span>
@@ -363,11 +380,9 @@ function ProviderDetail() {
                       )}
                     </div>
 
-                    {/* Date Picker */}
+                    {/* Date */}
                     <div className="mb-4">
-                      <label className="text-xs font-semibold text-[#0a1f5c] uppercase tracking-wide mb-2 block">
-                        Preferred Date *
-                      </label>
+                      <label className="text-xs font-semibold text-[#0a1f5c] uppercase tracking-wide mb-2 block">Preferred Date *</label>
                       <input
                         type="date"
                         value={bookingDate}

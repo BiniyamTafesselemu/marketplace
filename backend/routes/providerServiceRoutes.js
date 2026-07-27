@@ -13,15 +13,15 @@ const { adminMiddleware } = require("../middleware/adminMiddleware");
 
 const router = express.Router();
 
-// Public
-router.get("/", getAllServices);
-
-// Admin — must be before /:id to avoid conflict
+// Named routes FIRST
+router.get("/my", protect, getMyServices);
 router.get("/admin/all", protect, adminMiddleware, getAllServicesAdmin);
 router.put("/admin/:id/status", protect, adminMiddleware, updateServiceStatus);
 
-// Protected
-router.get("/my", protect, getMyServices);
+// Public
+router.get("/", getAllServices);
+
+// Protected with params — LAST
 router.post("/", protect, addService);
 router.put("/:id", protect, updateService);
 router.delete("/:id", protect, deleteService);

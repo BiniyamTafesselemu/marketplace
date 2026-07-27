@@ -6,7 +6,6 @@ const Booking = require("./Booking");
 const Review = require("./Review");
 const { sequelize } = require("../config/database");
 
-// Associations
 User.hasOne(ProviderProfile, { foreignKey: "user_id" });
 ProviderProfile.belongsTo(User, { foreignKey: "user_id" });
 
@@ -22,9 +21,11 @@ Booking.belongsTo(User, { foreignKey: "customer_id" });
 Booking.hasOne(Review, { foreignKey: "booking_id" });
 Review.belongsTo(Booking, { foreignKey: "booking_id" });
 
+ProviderProfile.hasMany(Review, { foreignKey: "provider_id" });
+Review.belongsTo(ProviderProfile, { foreignKey: "provider_id" });
+
 const syncDB = async () => {
-    // Only create tables if they don't exist — never alter
-    await sequelize.sync({ force: false });
+    await sequelize.sync();
     console.log("All tables synced");
 };
 

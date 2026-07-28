@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 interface User {
   id: number;
   role: string;
+  name?: string;
+  email?: string;
 }
 
 interface AuthContextType {
@@ -23,7 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const parseToken = (t: string): User | null => {
     try {
       const payload = JSON.parse(atob(t.split(".")[1]));
-      return { id: payload.id, role: payload.role };
+      return { id: payload.id, role: payload.role, name: payload.name, email: payload.email };
     } catch {
       return null;
     }
@@ -42,9 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    if (token) {
-      setUser(parseToken(token));
-    }
+    if (token) setUser(parseToken(token));
   }, [token]);
 
   return (

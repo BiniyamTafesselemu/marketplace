@@ -1,5 +1,5 @@
-const { Booking } = require("../models");
-const { ProviderProfile } = require("../models");
+const { Booking, ProviderProfile, User } = require("../models");
+const { sendEmail, bookingReceivedEmail, bookingStatusEmail, bookingCompletedEmail } = require("../services/emailService");
 
 async function getAllBookings(req, res) {
     try {
@@ -25,12 +25,32 @@ async function getBookingById(req, res) {
 async function createBooking(req, res) {
     try {
         const { provider_id, date } = req.body;
+
         const newBooking = await Booking.create({
             customer_id: req.user.id,
             provider_id,
             date,
             status: "pending"
         });
+
+        // Send email to provider
+        try {
+            const profile = await ProviderProfile.findByPk(provider_id);
+            const providerUser = await User.findByPk(profile?.user_id);
+            const customerUser = await User.findByPk(req.user.id);
+
+            if (providerUser?.email) {
+                const emailContent = bookingReceivedEmail(
+                    profile?.business_name || "Provider",
+                    newBooking.id,
+                    date
+                );
+                await sendEmail({ to: providerUser.email, ...emailContent });
+            }
+        } catch (emailError) {
+            console.error("Email notification failed:", emailError.message);
+        }
+
         res.status(201).json(newBooking);
     } catch (error) {
         res.status(500).json({ message: "Error creating booking" });
@@ -66,7 +86,6 @@ async function deleteBooking(req, res) {
     }
 }
 
-// Provider — get all bookings for their profile
 async function getProviderBookings(req, res) {
     try {
         const profile = await ProviderProfile.findOne({ where: { user_id: req.user.id } });
@@ -82,7 +101,6 @@ async function getProviderBookings(req, res) {
     }
 }
 
-// Provider — accept or reject a booking
 async function updateBookingStatus(req, res) {
     try {
         const { id } = req.params;
@@ -100,6 +118,32 @@ async function updateBookingStatus(req, res) {
 
         booking.status = status;
         await booking.save();
+
+        // Send email to customer
+        try {
+            const customerUser = await User.findByPk(booking.customer_id);
+            if (customerUser?.email) {
+                if (status === "accepted" || status === "rejected") {
+                    const emailContent = bookingStatusEmail(
+                        customerUser.name || "Customer",
+                        status,
+                        booking.id,
+                        booking.date
+                    );
+                    await sendEmail({ to: customerUser.email, ...emailContent });
+                }
+                if (status === "completed") {
+                    const emailContent = bookingCompletedEmail(
+                        customerUser.name || "Customer",
+                        booking.id
+                    );
+                    await sendEmail({ to: customerUser.email, ...emailContent });
+                }
+            }
+        } catch (emailError) {
+            console.error("Email notification failed:", emailError.message);
+        }
+
         res.status(200).json(booking);
     } catch (error) {
         res.status(500).json({ message: "Error updating booking status" });

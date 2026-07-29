@@ -9,13 +9,19 @@ const sequelize = new Sequelize(process.env.DB_URL, {
             require: true,
             rejectUnauthorized: false
         },
+        keepAlive: true,
+        keepAliveInitialDelayMillis: 0,
     },
     family: 4,
     pool: {
-        max: 3,
+        max: 5,
         min: 1,
-        acquire: 20000,
-        idle: 10000,
+        acquire: 60000,
+        idle: 30000,
+        evict: 10000,
+    },
+    retry: {
+        max: 3
     }
 });
 

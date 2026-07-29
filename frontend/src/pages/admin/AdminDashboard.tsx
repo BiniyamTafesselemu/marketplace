@@ -96,17 +96,19 @@ function AdminDashboard() {
     }
   };
 
-  const fetchAllServices = async () => {
+const fetchAllServices = async () => {
     setServicesLoading(true);
     try {
       const res = await api.get("/services/admin/all");
       setAllServices(res.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to fetch services", error);
+      // Show empty but let user retry
+      setAllServices([]);
     } finally {
       setServicesLoading(false);
     }
-  };
+};
 
   const handleVerify = async (id: number, status: string, reason?: string) => {
     setActionLoading(id);

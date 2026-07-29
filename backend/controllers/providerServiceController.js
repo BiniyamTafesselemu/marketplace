@@ -121,14 +121,23 @@ async function getAllServicesAdmin(req, res) {
         const services = await ProviderService.findAll({
             include: [{
                 model: ProviderProfile,
-                attributes: ["id", "business_name", "city", "user_id", "image"]
+                attributes: ["id", "business_name", "city", "user_id", "image"],
+                required: false
             }],
             order: [["createdAt", "DESC"]]
         });
         res.json(services);
     } catch (error) {
         console.error("getAllServicesAdmin error:", error.message);
-        res.status(500).json({ error: error.message });
+        // Retry once on timeout
+        try {
+            const services = await ProviderService.findAll({
+                order: [["createdAt", "DESC"]]
+            });
+            res.json(services);
+        } catch (retryError) {
+            res.status(500).json({ error: retryError.message });
+        }
     }
 }
 
